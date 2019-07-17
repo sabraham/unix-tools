@@ -1,0 +1,7 @@
+[package]
+name = "unix-utils"
+version = "0.1.0"
+authors = ["Sunil Abraham <s.abraham@gmail.com>"]
+edition = "2018"
+
+[dependencies]
