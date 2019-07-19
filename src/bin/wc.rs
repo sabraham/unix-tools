@@ -21,28 +21,22 @@ struct Output {
 
 impl Config {
     pub fn new() -> Config {
-        let (bytes, lines, chars, words) = (false, false, false, false);
         Config {
-            bytes,
-            lines,
-            chars,
-            words,
+            bytes: true,
+            lines: true,
+            chars: false,
+            words: true,
         }
-    }
-    pub fn default(&mut self) -> () {
-        self.bytes = true;
-        self.lines = true;
-        self.words = true;
     }
 }
 
-fn process<T: io::Read>(
+fn process<T: io::Read>(filename: Option<String>,
     reader: BufReader<T>,
-    filename: Option<String>,
 ) -> Result<Output, io::Error> {
-    let (mut bytes, mut lines, chars, mut words) = (0, 0, 0, 0);
+    let (mut bytes, mut lines, mut words) = (0, 0, 0);
     let mut whitespace = true;
     for byte in reader.bytes() {
+        bytes += 1;
         match byte {
             Ok(b'\n') => {
                 whitespace = true;
@@ -60,12 +54,11 @@ fn process<T: io::Read>(
                 ()
             }
         };
-        bytes = bytes + 1;
     }
     Ok(Output {
         bytes,
         lines,
-        chars,
+        chars:0,
         words,
         filename,
     })
@@ -95,13 +88,15 @@ fn display(config: &Config, output: &Output) -> String {
 
 fn main() -> Result<(), io::Error> {
     let args: Vec<String> = env::args().collect();
-    let mut default = true;
     let mut config = Config::new();
     let mut files = None;
     for (i, arg) in args.iter().skip(1).enumerate() {
         let mut it = arg.chars();
         if it.next().unwrap() == '-' {
-            default = false;
+            config.bytes = false;
+            config.lines = false;
+            config.chars = false;
+            config.words = false;
             while let Some(ch) = it.next() {
                 match ch {
                     'c' => config.bytes = true,
@@ -121,20 +116,17 @@ fn main() -> Result<(), io::Error> {
         files = Some((&args[i + 1..]).into_iter());
         break;
     }
-    if default {
-        config.default();
-    }
     let results = match files {
         None => {
             let reader = BufReader::new(io::stdin());
-            let output = process(reader, None);
+            let output = process(None, reader);
             vec![output]
         }
         Some(x) => x
             .map(|x| {
                 let f = File::open(x).unwrap();
                 let reader = BufReader::new(f);
-                process(reader, Some(x.to_string()))
+                process(Some(x.to_string()), reader)
             })
             .collect(),
     };
